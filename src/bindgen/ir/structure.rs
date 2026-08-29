@@ -56,7 +56,11 @@ impl Struct {
         mod_cfg: Option<&Cfg>,
     ) -> Result<Self, String> {
         let repr = Repr::load(&item.attrs)?;
+        let annotations = AnnotationSet::load(&item.attrs)?;
         let is_transparent = match repr.style {
+            _ if annotations.force_opaque() => {
+                return Err("Struct is marked with explicit opaque annotation.".to_owned());
+            }
             ReprStyle::C => false,
             ReprStyle::Transparent => true,
             _ => {
@@ -109,7 +113,7 @@ impl Struct {
             repr.align,
             is_transparent,
             Cfg::append(mod_cfg, Cfg::load(&item.attrs)),
-            AnnotationSet::load(&item.attrs)?,
+            annotations,
             Documentation::load(&item.attrs),
         ))
     }

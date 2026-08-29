@@ -37,6 +37,10 @@ impl Union {
         mod_cfg: Option<&Cfg>,
     ) -> Result<Union, String> {
         let repr = Repr::load(&item.attrs)?;
+        let annotations = AnnotationSet::load(&item.attrs)?;
+        if annotations.force_opaque() {
+            return Err("Union is marked with explicit opaque annotation.".to_owned());
+        }
         if repr.style != ReprStyle::C {
             return Err("Union is not marked #[repr(C)].".to_owned());
         }
@@ -64,7 +68,7 @@ impl Union {
             repr.align,
             tuple_union,
             Cfg::append(mod_cfg, Cfg::load(&item.attrs)),
-            AnnotationSet::load(&item.attrs)?,
+            annotations,
             Documentation::load(&item.attrs),
         ))
     }
