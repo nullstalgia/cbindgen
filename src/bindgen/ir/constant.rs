@@ -19,8 +19,8 @@ use crate::bindgen::ir::{
 };
 use crate::bindgen::language_backend::LanguageBackend;
 use crate::bindgen::library::Library;
-use crate::bindgen::transparent::ResolveTransparentTypes;
 use crate::bindgen::rename::{IdentifierType, RenameRule};
+use crate::bindgen::transparent::ResolveTransparentTypes;
 use crate::bindgen::writer::SourceWriter;
 use crate::bindgen::Bindings;
 
