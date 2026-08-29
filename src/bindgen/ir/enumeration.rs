@@ -354,6 +354,10 @@ impl Enum {
         config: &Config,
     ) -> Result<Enum, String> {
         let repr = Repr::load(&item.attrs)?;
+        let annotations = AnnotationSet::load(&item.attrs)?;
+        if annotations.force_opaque() {
+            return Err("Enum is marked with explicit opaque annotation.".to_owned());
+        }
         if repr.style == ReprStyle::Rust && repr.ty.is_none() {
             return Err("Enum is not marked with a valid #[repr(prim)] or #[repr(C)].".to_owned());
         }
@@ -367,8 +371,6 @@ impl Enum {
 
         let mut variants = Vec::new();
         let mut has_data = false;
-
-        let annotations = AnnotationSet::load(&item.attrs)?;
 
         for variant in item.variants.iter() {
             let variant = EnumVariant::load(
