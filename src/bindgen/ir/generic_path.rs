@@ -6,7 +6,7 @@ use syn::ext::IdentExt;
 use crate::bindgen::cdecl;
 use crate::bindgen::config::{Config, Language};
 use crate::bindgen::declarationtyperesolver::{DeclarationType, DeclarationTypeResolver};
-use crate::bindgen::ir::{ConstExpr, Path, Type};
+use crate::bindgen::ir::{ConstExpr, Path, PrimitiveType, Type};
 use crate::bindgen::language_backend::LanguageBackend;
 use crate::bindgen::utilities::IterHelpers;
 use crate::bindgen::writer::SourceWriter;
@@ -40,9 +40,9 @@ impl GenericParam {
                 ref default,
                 ..
             }) => {
-                let default = match default.as_ref().map(Type::load).transpose()? {
+                let default = match default.as_ref().map(|(_, ty)| Type::load(ty)).transpose()? {
                     None => None,
-                    Some(None) => Err(format!("unsupported generic type default: {:?}", default))?,
+                    Some(None) => Some(GenericArgument::Type(Type::Primitive(PrimitiveType::Void))),
                     Some(Some(ty)) => Some(GenericArgument::Type(ty)),
                 };
                 Ok(Some(GenericParam {
@@ -62,14 +62,14 @@ impl GenericParam {
             }) => match Type::load(ty)? {
                 None => {
                     // A type that evaporates, like PhantomData.
-                    Err(format!("unsupported const generic type: {:?}", ty))
+                    Err(format!("unsupported const generic type: {ty:?}"))
                 }
                 Some(ty) => Ok(Some(GenericParam {
                     name: Path::new(ident.unraw().to_string()),
                     ty: GenericParamType::Const(ty),
                     default: default
                         .as_ref()
-                        .map(ConstExpr::load)
+                        .map(|(_, ty)| ConstExpr::load(ty))
                         .transpose()?
                         .map(GenericArgument::Const),
                 })),
@@ -232,7 +232,7 @@ impl GenericArgument {
     pub fn rename_for_config(&mut self, config: &Config, generic_params: &GenericParams) {
         match *self {
             GenericArgument::Type(ref mut ty) => ty.rename_for_config(config, generic_params),
-            GenericArgument::Const(ref mut expr) => expr.rename_for_config(config),
+            GenericArgument::Const(ref mut expr) => expr.rename_for_config(config, generic_params),
         }
     }
 }
@@ -311,8 +311,7 @@ impl GenericPath {
     pub fn load(path: &syn::Path) -> Result<Self, String> {
         assert!(
             !path.segments.is_empty(),
-            "{:?} doesn't have any segments",
-            path
+            "{path:?} doesn't have any segments"
         );
         let last_segment = path.segments.last().unwrap();
         let name = last_segment.ident.unraw().to_string();
@@ -333,7 +332,7 @@ impl GenericPath {
                 syn::GenericArgument::Const(ref x) => {
                     Ok(Some(GenericArgument::Const(ConstExpr::load(x)?)))
                 }
-                _ => Err(format!("can't handle generic argument {:?}", x)),
+                _ => Err(format!("can't handle generic argument {x:?}")),
             })?,
             syn::PathArguments::Parenthesized(_) => {
                 return Err("Path contains parentheses.".to_owned());

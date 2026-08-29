@@ -85,7 +85,7 @@ impl Struct {
                     if let Some(mut ty) = Type::load(&field.ty)? {
                         ty.replace_self_with(&path);
                         out.push(Field {
-                            name: format!("{}", current),
+                            name: format!("{current}"),
                             ty,
                             cfg: Cfg::load(&field.attrs),
                             annotations: AnnotationSet::load(&field.attrs)?,
@@ -139,7 +139,7 @@ impl Struct {
         if fields.is_empty() {
             warn!(
                 "Passing zero-sized struct {} across the FFI boundary is undefined behavior",
-                &path
+                path
             );
             is_transparent = false;
         }
@@ -257,7 +257,7 @@ impl Struct {
             other
         );
         out.open_brace();
-        write!(out, "*this = (*this {} {});", operator, other);
+        write!(out, "*this = (*this {operator} {other});");
         out.new_line();
         write!(out, "return *this;");
         out.close_brace(false);

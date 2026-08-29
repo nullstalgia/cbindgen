@@ -7,13 +7,14 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{BufWriter, Write};
 use std::path;
 use std::rc::Rc;
 
 use crate::bindgen::config::{Config, Language};
 use crate::bindgen::ir::{
-    Constant, Function, ItemContainer, ItemMap, Path as BindgenPath, Static, Struct, Type, Typedef,
+    Constant, Enum, Function, ItemContainer, ItemMap, Path as BindgenPath, Static, Struct, Type,
+    Typedef,
 };
 use crate::bindgen::language_backend::{
     CLikeLanguageBackend, CythonLanguageBackend, LanguageBackend,
@@ -26,6 +27,9 @@ pub struct Bindings {
     /// The map from path to struct, used to lookup whether a given type is a
     /// transparent struct. This is needed to generate code for constants.
     struct_map: ItemMap<Struct>,
+    /// The map from path to enum, used to validate enum-variant paths that
+    /// appear in constant literals.
+    enum_map: ItemMap<Enum>,
     typedef_map: ItemMap<Typedef>,
     struct_fileds_memo: RefCell<HashMap<BindgenPath, Rc<Vec<String>>>>,
     pub globals: Vec<Static>,
@@ -44,6 +48,7 @@ impl Bindings {
     pub(crate) fn new(
         config: Config,
         struct_map: ItemMap<Struct>,
+        enum_map: ItemMap<Enum>,
         typedef_map: ItemMap<Typedef>,
         constants: Vec<Constant>,
         globals: Vec<Static>,
@@ -56,6 +61,7 @@ impl Bindings {
         Bindings {
             config,
             struct_map,
+            enum_map,
             typedef_map,
             struct_fileds_memo: Default::default(),
             globals,
@@ -100,6 +106,37 @@ impl Bindings {
         any
     }
 
+    pub fn enum_exists(&self, path: &BindgenPath) -> bool {
+        let mut any = false;
+        self.enum_map.for_items(path, |_| any = true);
+        any
+    }
+
+    /// Returns how the variant `variant_name` of the enum at `path` should be
+    /// referenced in generated code: `Enum::Variant` for a C++ `enum class`,
+    /// or the bare (possibly prefixed) variant name otherwise. Returns `None`
+    /// if the enum or the variant isn't known.
+    pub fn enum_variant_reference(&self, path: &BindgenPath, variant_name: &str) -> Option<String> {
+        let config = &self.config;
+        let mut result = None;
+        self.enum_map.for_items(path, |e| {
+            if result.is_some() {
+                return;
+            }
+            let Some(variant) = e.variants.iter().find(|v| v.name == variant_name) else {
+                return;
+            };
+            let qualify =
+                config.language == Language::Cxx && config.enumeration.enum_class(&e.annotations);
+            result = Some(if qualify {
+                format!("{}::{}", e.export_name, variant.export_name)
+            } else {
+                variant.export_name.clone()
+            });
+        });
+        result
+    }
+
     pub fn struct_field_names(&self, path: &BindgenPath) -> Rc<Vec<String>> {
         let mut memos = self.struct_fileds_memo.borrow_mut();
         if let Some(memo) = memos.get(path) {
@@ -127,6 +164,35 @@ impl Bindings {
             memos.insert(p, fields.clone());
         }
         fields
+    }
+
+    /// Lists the exported symbols that can be dynamically linked, i.e. globals and functions.
+    pub fn dynamic_symbols_names(&self) -> impl Iterator<Item = &str> {
+        use crate::bindgen::ir::Item;
+
+        let function_names = self
+            .functions
+            .iter()
+            .filter(|f| f.annotations.should_export())
+            .map(|f| f.path().name());
+        let global_names = self
+            .globals
+            .iter()
+            .filter(|s| s.annotations.should_export())
+            .map(|g| g.export_name());
+        function_names.chain(global_names)
+    }
+
+    pub fn generate_symfile<P: AsRef<path::Path>>(&self, symfile_path: P) {
+        if let Some(dir) = symfile_path.as_ref().parent() {
+            std::fs::create_dir_all(dir).unwrap();
+        }
+        let mut writer = BufWriter::new(File::create(symfile_path).unwrap());
+        writeln!(&mut writer, "{{").expect("writing symbol file header failed");
+        for symbol in self.dynamic_symbols_names() {
+            writeln!(&mut writer, "{symbol};").expect("writing symbol failed");
+        }
+        write!(&mut writer, "}};").expect("writing symbol file footer failed");
     }
 
     pub fn generate_depfile<P: AsRef<path::Path>>(&self, header_path: P, depfile_path: P) {
@@ -177,7 +243,7 @@ impl Bindings {
 
         // Don't compare files if we've never written this file before
         if !path.as_ref().is_file() {
-            if let Some(parent) = path::Path::new(path.as_ref()).parent() {
+            if let Some(parent) = path.as_ref().parent() {
                 fs::create_dir_all(parent).unwrap();
             }
             self.write(File::create(path).unwrap());
@@ -187,15 +253,10 @@ impl Bindings {
         let mut new_file_contents = Vec::new();
         self.write(&mut new_file_contents);
 
-        let mut old_file_contents = Vec::new();
-        {
-            let mut old_file = File::open(&path).unwrap();
-            old_file.read_to_end(&mut old_file_contents).unwrap();
-        }
+        let old_file_contents = std::fs::read(&path).unwrap();
 
         if old_file_contents != new_file_contents {
-            let mut new_file = File::create(&path).unwrap();
-            new_file.write_all(&new_file_contents).unwrap();
+            std::fs::write(&path, &new_file_contents).unwrap();
             true
         } else {
             false

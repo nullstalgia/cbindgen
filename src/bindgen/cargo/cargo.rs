@@ -17,7 +17,7 @@ use crate::bindgen::ir::Cfg;
 fn parse_dep_string(dep_string: &str) -> (&str, Option<&str>) {
     let split: Vec<&str> = dep_string.split_whitespace().collect();
 
-    (split[0], split.get(1).cloned())
+    (split[0], split.get(1).copied())
 }
 
 /// A collection of metadata for a library from cargo.
@@ -55,7 +55,7 @@ impl Cargo {
             match cargo_lock::lock(&lock_path) {
                 Ok(lock) => Some(lock),
                 Err(x) => {
-                    warn!("Couldn't load lock file {:?}: {:?}", lock_path, x);
+                    warn!("Couldn't load lock file {lock_path:?}: {x:?}");
                     None
                 }
             }
@@ -157,7 +157,7 @@ impl Cargo {
                     if versions.next().is_none() {
                         version
                     } else {
-                        warn!("when looking for a version for package {}, multiple versions where found", dep_name);
+                        warn!("when looking for a version for package {dep_name}, multiple versions where found");
                         None
                     }
                 });
@@ -207,14 +207,8 @@ impl Cargo {
     /// Finds the directory for a specified package reference.
     #[allow(unused)]
     pub(crate) fn find_crate_dir(&self, package: &PackageRef) -> Option<PathBuf> {
-        self.metadata
-            .packages
-            .get(package)
-            .and_then(|meta_package| {
-                Path::new(&meta_package.manifest_path)
-                    .parent()
-                    .map(|x| x.to_owned())
-            })
+        let meta_package = self.metadata.packages.get(package)?;
+        Some(Path::new(&meta_package.manifest_path).parent()?.to_owned())
     }
 
     /// Finds `src/lib.rs` for a specified package reference.
@@ -225,22 +219,18 @@ impl Cargo {
         let kind_cdylib = String::from("cdylib");
         let kind_dylib = String::from("dylib");
 
-        self.metadata
-            .packages
-            .get(package)
-            .and_then(|meta_package| {
-                for target in &meta_package.targets {
-                    if target.kind.contains(&kind_lib)
-                        || target.kind.contains(&kind_staticlib)
-                        || target.kind.contains(&kind_rlib)
-                        || target.kind.contains(&kind_cdylib)
-                        || target.kind.contains(&kind_dylib)
-                    {
-                        return Some(PathBuf::from(&target.src_path));
-                    }
-                }
-                None
-            })
+        let meta_package = self.metadata.packages.get(package)?;
+        for target in &meta_package.targets {
+            if target.kind.contains(&kind_lib)
+                || target.kind.contains(&kind_staticlib)
+                || target.kind.contains(&kind_rlib)
+                || target.kind.contains(&kind_cdylib)
+                || target.kind.contains(&kind_dylib)
+            {
+                return Some(PathBuf::from(&target.src_path));
+            }
+        }
+        None
     }
 
     pub(crate) fn expand_crate(

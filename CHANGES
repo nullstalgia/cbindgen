@@ -1,5 +1,63 @@
 # unreleased
 
+      * Emit `&str`, `&CStr`, and arrays thereof as C string literals, and byte-string
+        (`b"..."`) constants as `uint8_t[]` arrays, instead of dropping them.
+
+# 0.29.4
+
+      * Support constant enums and arrays.
+
+# 0.29.3
+
+      * Expose the line_endings config option to use with the builder
+      * Fix doc attribute parsing to properly handle block comments
+      * Check for CMSE ABI's as well
+      * ci: Add a meta job to block the merge queue on it.
+      * Allow `pub` access to `ReprType` fields
+      * In C23 mode, define sized enums as enums rather than typedefs.
+
+# 0.29.2
+
+      * Request serde's std feature to avoid issues with newer toml versions.
+
+# 0.29.1
+
+      * cf13c2b enum: Track dependencies properly in enumerations.
+      * 307d1e9 constant: Handle cfg in associated constants.
+      * 0902d02 Remove "display" feature from the toml crate
+      * 9068410 Fix incorrect detection of duplicated constants
+      * 451e768 docs: Correct after_include type in example config (fix)
+      * aff68c6 cargo update
+      * 09666f6 Update toml to 0.9
+
+# 0.29.0
+
+      * Support no-export annotation for statics and functions.
+      * Fixed conditional fields of constexpr literal structs
+      * Add rename rule for generated associated constant
+      * Upgrade heck to 0.5
+      * Add support for an optional nullable attribute
+      * docs.md: Fix deprecated_with_note and deprecated_variant_with_note being spelled as 'notes'
+      * Fix generic with "void" default
+      * Fixed error generation of structures using the keyword as inside arrays
+      * Added test for unsafe(no_mangle) attribute
+      * Fixed handling of trait methods containing the unsafe attribute
+      * Rename -Zparse-only
+
+# 0.28.0
+
+      * Parse unsafe attributes in https://github.com/mozilla/cbindgen/pull/1020
+      * Fix local override of enum prefix-with-name by jsgf in https://github.com/mozilla/cbindgen/pull/1006
+      * Add rename-all=prefix in https://github.com/mozilla/cbindgen/pull/1021
+      * ir: add support for UnsafeCell and SyncUnsafeCell by alekitto in https://github.com/mozilla/cbindgen/pull/1003
+      * Implement mangling for arrays in https://github.com/mozilla/cbindgen/pull/1022
+      * Fix: Ignore `CARGO_BUILD_TARGET` in tests by bryango in https://github.com/mozilla/cbindgen/pull/1010
+      * Newline for each field for constexpr field constants by youknowone in https://github.com/mozilla/cbindgen/pull/988
+      * Fix clippy warnings by youknowone in https://github.com/mozilla/cbindgen/pull/1026
+      * Add aarch64/arm64 to CI by NickeZ in https://github.com/mozilla/cbindgen/pull/1036
+      * Add `unstable_ir` feature flag that makes the ir pub by heesooy in https://github.com/mozilla/cbindgen/pull/1011
+      * Support generated a symbols file by TheElectronWill in https://github.com/mozilla/cbindgen/pull/916
+
 # 0.27.0
 
       * Revert: The `Config` struct now has a private member.

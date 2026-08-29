@@ -6,7 +6,7 @@ use std::path;
 
 use crate::bindgen::bindings::Bindings;
 use crate::bindgen::cargo::Cargo;
-use crate::bindgen::config::{Braces, Config, Language, Profile, Style};
+use crate::bindgen::config::{Braces, Config, Language, LineEndingStyle, Profile, Style};
 use crate::bindgen::error::Error;
 use crate::bindgen::library::Library;
 use crate::bindgen::parser::{self, Parse};
@@ -272,7 +272,7 @@ impl Builder {
     #[allow(unused)]
     pub fn with_target_os_define(mut self, platform: &str, preprocessor_define: &str) -> Builder {
         self.config.defines.insert(
-            format!("target_os = {}", platform),
+            format!("target_os = {platform}"),
             preprocessor_define.to_owned(),
         );
         self
@@ -280,10 +280,9 @@ impl Builder {
 
     #[allow(unused)]
     pub fn with_define(mut self, key: &str, value: &str, preprocessor_define: &str) -> Builder {
-        self.config.defines.insert(
-            format!("{} = {}", key, value),
-            preprocessor_define.to_owned(),
-        );
+        self.config
+            .defines
+            .insert(format!("{key} = {value}"), preprocessor_define.to_owned());
         self
     }
 
@@ -344,6 +343,12 @@ impl Builder {
         self
     }
 
+    #[allow(unused)]
+    pub fn with_line_endings(mut self, line_ending_style: LineEndingStyle) -> Builder {
+        self.config.line_endings = line_ending_style;
+        self
+    }
+
     pub fn generate(self) -> Result<Bindings, Error> {
         // If macro expansion is enabled, then cbindgen will attempt to build the crate
         // and will run its build script which may run cbindgen again. That second run may start
@@ -353,6 +358,7 @@ impl Builder {
         if std::env::var("_CBINDGEN_IS_RUNNING").is_ok() {
             return Ok(Bindings::new(
                 self.config,
+                Default::default(),
                 Default::default(),
                 Default::default(),
                 Default::default(),
@@ -375,11 +381,11 @@ impl Builder {
             result.extend_with(&parser::parse_src(x, &self.config)?);
         }
 
-        if let Some((lib_dir, binding_lib_name)) = self.lib.clone() {
+        if let Some((lib_dir, binding_lib_name)) = &self.lib {
             let lockfile = self.lockfile.as_deref();
 
             let cargo = Cargo::load(
-                &lib_dir,
+                lib_dir,
                 lockfile,
                 binding_lib_name.as_deref(),
                 self.config.parse.parse_deps,

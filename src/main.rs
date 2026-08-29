@@ -35,7 +35,7 @@ fn apply_config_overrides(config: &mut Config, matches: &ArgMatches) {
             config.language = bindgen::Language::from_str(lang).unwrap();
         }
         Err(reason) => {
-            error!("{}", reason);
+            error!("{reason}");
             return;
         }
         _ => (),
@@ -69,7 +69,7 @@ fn apply_config_overrides(config: &mut Config, matches: &ArgMatches) {
             config.parse.expand.profile = bindgen::Profile::from_str(profile).unwrap();
         }
         Err(e) => {
-            error!("{}", e);
+            error!("{e}");
             return;
         }
         _ => (),
@@ -298,6 +298,17 @@ fn main() {
                     This option is ignored if `--out` is missing."
                 )
         )
+        .arg(
+            Arg::new("symfile")
+                .value_name("PATH")
+                .long("symfile")
+                .num_args(1)
+                .required(false)
+                .help("Generate a list of symbols at the given Path. This list can be \
+                    given to a linker in order to compile an application that exposes \
+                    dynamic symbols. Useful when creating a plugin system with a C interface."
+                )
+        )
         .get_matches();
 
     if matches.get_flag("verify") && !matches.contains_id("out") {
@@ -327,7 +338,7 @@ fn main() {
     let bindings = match load_bindings(&input, &matches) {
         Ok(bindings) => bindings,
         Err(msg) => {
-            error!("{}", msg);
+            error!("{msg}");
             error!("Couldn't generate bindings for {}.", input.display());
             std::process::exit(1);
         }
@@ -343,7 +354,10 @@ fn main() {
                 std::process::exit(2);
             }
             if let Some(depfile) = matches.get_one("depfile") {
-                bindings.generate_depfile(file, depfile)
+                bindings.generate_depfile(file, depfile);
+            }
+            if let Some(symfile) = matches.get_one::<String>("symfile") {
+                bindings.generate_symfile(symfile);
             }
         }
         _ => {

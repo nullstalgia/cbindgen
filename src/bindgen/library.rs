@@ -138,6 +138,7 @@ impl Library {
         Ok(Bindings::new(
             self.config,
             self.structs,
+            self.enums,
             self.typedefs,
             constants,
             globals,
@@ -211,9 +212,8 @@ impl Library {
                     transferred = true;
                 } else {
                     warn!(
-                        "Can't transfer annotations from typedef to alias ({}) \
-                         that already has annotations.",
-                        alias_path
+                        "Can't transfer annotations from typedef to alias ({alias_path}) \
+                         that already has annotations."
                     );
                 }
             });
@@ -226,9 +226,8 @@ impl Library {
                     transferred = true;
                 } else {
                     warn!(
-                        "Can't transfer annotations from typedef to alias ({}) \
-                         that already has annotations.",
-                        alias_path
+                        "Can't transfer annotations from typedef to alias ({alias_path}) \
+                         that already has annotations."
                     );
                 }
             });
@@ -241,9 +240,8 @@ impl Library {
                     transferred = true;
                 } else {
                     warn!(
-                        "Can't transfer annotations from typedef to alias ({}) \
-                         that already has annotations.",
-                        alias_path
+                        "Can't transfer annotations from typedef to alias ({alias_path}) \
+                         that already has annotations."
                     );
                 }
             });
@@ -256,9 +254,8 @@ impl Library {
                     transferred = true;
                 } else {
                     warn!(
-                        "Can't transfer annotations from typedef to alias ({}) \
-                         that already has annotations.",
-                        alias_path
+                        "Can't transfer annotations from typedef to alias ({alias_path}) \
+                         that already has annotations."
                     );
                 }
             });
@@ -271,9 +268,8 @@ impl Library {
                     transferred = true;
                 } else {
                     warn!(
-                        "Can't transfer annotations from typedef to alias ({}) \
-                         that already has annotations.",
-                        alias_path
+                        "Can't transfer annotations from typedef to alias ({alias_path}) \
+                         that already has annotations."
                     );
                 }
             });

@@ -4,6 +4,7 @@ DEF PLATFORM_WIN = 0
 DEF X11 = 0
 DEF M_32 = 0
 #endif
+#define PLATFORM_UNIX 1
 
 
 #include <stdarg.h>
@@ -11,33 +12,74 @@ DEF M_32 = 0
 #include <stdint.h>
 #include <stdlib.h>
 
-#if (defined(PLATFORM_WIN) || defined(M_32))
-enum BarType {
+#if (defined(PLATFORM_UNIX) && defined(X11))
+enum FooType
+#if __STDC_VERSION__ >= 202311L
+  : uint32_t
+#endif // __STDC_VERSION__ >= 202311L
+ {
   A,
   B,
   C,
 };
-typedef uint32_t BarType;
+#if __STDC_VERSION__ >= 202311L
+typedef enum FooType FooType;
+#else
+typedef uint32_t FooType;
+#endif // __STDC_VERSION__ >= 202311L
 #endif
 
-#if (defined(PLATFORM_UNIX) && defined(X11))
-enum FooType {
+#if (defined(PLATFORM_WIN) || defined(M_32))
+enum BarType
+#if __STDC_VERSION__ >= 202311L
+  : uint32_t
+#endif // __STDC_VERSION__ >= 202311L
+ {
   A,
   B,
   C,
 };
-typedef uint32_t FooType;
+#if __STDC_VERSION__ >= 202311L
+typedef enum BarType BarType;
+#else
+typedef uint32_t BarType;
+#endif // __STDC_VERSION__ >= 202311L
+#endif
+
+typedef struct Flags {
+  uint8_t _0;
+} Flags;
+/**
+ * none
+ */
+#define Flags_NONE (Flags){ ._0 = (uint8_t)0 }
+#if defined(PLATFORM_WIN)
+#define Flags_A (Flags){ ._0 = (uint8_t)(1 << 0) }
+#endif
+#if defined(PLATFORM_UNIX)
+#define Flags_A (Flags){ ._0 = (uint8_t)(1 << 1) }
+#endif
+#if defined(PLATFORM_WIN)
+#define Flags_B (Flags){ ._0 = (uint8_t)((Flags_A)._0 | (1 << 3)) }
+#endif
+#if defined(PLATFORM_UNIX)
+#define Flags_B (Flags){ ._0 = (uint8_t)((Flags_A)._0 | (1 << 4)) }
 #endif
 
 #if (defined(PLATFORM_UNIX) && defined(X11))
 typedef struct FooHandle {
   FooType ty;
+  struct Flags flags;
   int32_t x;
   float y;
 } FooHandle;
 #endif
 
-enum C_Tag {
+enum C_Tag
+#if __STDC_VERSION__ >= 202311L
+  : uint8_t
+#endif // __STDC_VERSION__ >= 202311L
+ {
   C1,
   C2,
 #if defined(PLATFORM_WIN)
@@ -47,7 +89,11 @@ enum C_Tag {
   C5,
 #endif
 };
+#if __STDC_VERSION__ >= 202311L
+typedef enum C_Tag C_Tag;
+#else
 typedef uint8_t C_Tag;
+#endif // __STDC_VERSION__ >= 202311L
 
 #if defined(PLATFORM_UNIX)
 typedef struct C5_Body {
@@ -77,6 +123,8 @@ typedef struct ConditionalField {
 #endif
   ;
 } ConditionalField;
+#define ConditionalField_ZERO (ConditionalField){ .field = 0 }
+#define ConditionalField_ONE (ConditionalField){ .field = 1 }
 
 typedef struct Normal {
   int32_t x;

@@ -94,9 +94,18 @@ cbindgen = "0.24.0"
 
 If you'd like to use a `build.rs` script with a `cbindgen.toml`, consider using [`cbindgen::generate()`](https://docs.rs/cbindgen/*/cbindgen/fn.generate.html) instead.
 
+## Internal Representation
 
+Some users may find it useful to access the **unstable** internal representation (IR) that cbindgen uses to parse and generate code. By default, the IR is private, but you can access it by enabling the `"unstable_ir"` feature flag like so:
 
+```
+[build-dependencies]
+cbindgen = { version = "0.27.0", features = ["unstable_ir"] }
+```
 
+This opens up the `cbindgen::bindgen::ir` module.
+
+Please remember that the IR is **not stable**, so if you use this feature, you will need to pin cbindgen to avoid breakages.
 
 # Writing Your C API
 
@@ -571,7 +580,7 @@ no_includes = false
 # default: false
 cpp_compat = false
 
-# A list of lines to add verbatim after the includes block
+# A block of text to add verbatim after the includes block
 after_includes = "#define VERSION 1"
 
 
@@ -796,7 +805,7 @@ deprecated = "DEPRECATED_FUNC"
 # would involve emitting the name of a macro which you define in a
 # platform-specific way. e.g. "DEPRECATED_FUNC_WITH_NOTE(note)"
 # default: nothing is emitted for deprecated functions
-deprecated_with_notes = "DEPRECATED_FUNC_WITH_NOTE"
+deprecated_with_note = "DEPRECATED_FUNC_WITH_NOTE"
 
 # An optional string that will be used in the attribute position for functions
 # that don't return (that return `!` in Rust).
@@ -885,7 +894,7 @@ deprecated = "DEPRECATED_STRUCT"
 # would involve emitting the name of a macro which you define in a
 # platform-specific way. e.g. "DEPRECATED_STRUCT_WITH_NOTE(note)"
 # default: nothing is emitted for deprecated structs
-deprecated_with_notes = "DEPRECATED_STRUCT_WITH_NOTE"
+deprecated_with_note = "DEPRECATED_STRUCT_WITH_NOTE"
 
 # Whether a Rust type with associated consts should emit those consts inside the
 # type's body. Otherwise they will be emitted trailing and with the type's name
@@ -894,6 +903,12 @@ deprecated_with_notes = "DEPRECATED_STRUCT_WITH_NOTE"
 #
 # default: false
 # associated_constants_in_body: false
+
+# The rename rule to apply to the struct name used for prefixing associated
+# constants.
+#
+# default: "None"
+rename_associated_constant = "None"
 
 # Whether to derive a simple constructor that takes a value for every field.
 # default: false
@@ -1015,7 +1030,7 @@ deprecated = "DEPRECATED_ENUM"
 # would involve emitting the name of a macro which you define in a
 # platform-specific way. e.g. "DEPRECATED_ENUM_WITH_NOTE(note)"
 # default: nothing is emitted for deprecated enums
-deprecated_with_notes = "DEPRECATED_ENUM_WITH_NOTE"
+deprecated_with_note = "DEPRECATED_ENUM_WITH_NOTE"
 
 # An optional string that should come after the name of any enum variant which has been
 # marked as `#[deprecated]` without note. For instance, "__attribute__((deprecated))"
@@ -1032,7 +1047,7 @@ deprecated_variant = "DEPRECATED_ENUM_VARIANT"
 # emitting the name of a macro which you define in a platform-specific
 # way. e.g. "DEPRECATED_ENUM_WITH_NOTE(note)"
 # default: nothing is emitted for deprecated enum variants
-deprecated_variant_with_notes = "DEPRECATED_ENUM_VARIANT_WITH_NOTE({})"
+deprecated_variant_with_note = "DEPRECATED_ENUM_VARIANT_WITH_NOTE({})"
 
 # Whether enums with fields should generate destructors. This exists so that generic
 # enums can be properly instantiated with payloads that are C++ types with

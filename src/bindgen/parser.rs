@@ -132,7 +132,7 @@ impl Parser<'_> {
         // If we have a whitelist, check it
         if let Some(ref include) = self.config.parse.include {
             if !include.iter().any(|name| name == pkg_name) {
-                debug!("Excluding crate {}", pkg_name);
+                debug!("Excluding crate {pkg_name}");
                 return false;
             }
         }
@@ -649,7 +649,7 @@ impl Parse {
         item: &syn::ItemForeignMod,
     ) {
         if !item.abi.is_c() && !item.abi.is_omitted() {
-            info!("Skip {} - (extern block must be extern C).", crate_name);
+            info!("Skip {crate_name} - (extern block must be extern C).");
             return;
         }
 
@@ -662,7 +662,7 @@ impl Parse {
                 {
                     info!(
                         "Skip {}::{} - (fn's outside of the binding crate are not used).",
-                        crate_name, &function.sig.ident
+                        crate_name, function.sig.ident
                     );
                     return;
                 }
@@ -676,14 +676,14 @@ impl Parse {
                     mod_cfg.as_ref(),
                 ) {
                     Ok(func) => {
-                        info!("Take {}::{}.", crate_name, &function.sig.ident);
+                        info!("Take {}::{}.", crate_name, function.sig.ident);
 
                         self.functions.push(func);
                     }
                     Err(msg) => {
                         error!(
                             "Cannot use fn {}::{} ({}).",
-                            crate_name, &function.sig.ident, msg
+                            crate_name, function.sig.ident, msg
                         );
                     }
                 }
@@ -752,7 +752,7 @@ impl Parse {
         {
             info!(
                 "Skip {}::{} - (fn's outside of the binding crate are not used).",
-                crate_name, &sig.ident
+                crate_name, sig.ident
             );
             return;
         }
@@ -767,7 +767,7 @@ impl Parse {
             items.join("::")
         };
 
-        let is_extern_c = sig.abi.is_omitted() || sig.abi.is_c();
+        let is_extern_c = sig.abi.is_omitted() || sig.abi.is_c() || sig.abi.is_cmse();
         let exported_name = named_symbol.exported_name();
 
         match (is_extern_c, exported_name) {
@@ -809,7 +809,7 @@ impl Parse {
         let ty = match Type::load(impl_ty) {
             Ok(ty) => ty,
             Err(e) => {
-                warn!("Skipping associated constants for {:?}: {:?}", impl_ty, e);
+                warn!("Skipping associated constants for {impl_ty:?}: {e:?}");
                 return;
             }
         };
@@ -822,10 +822,7 @@ impl Parse {
         let impl_path = match ty.get_root_path() {
             Some(p) => p,
             None => {
-                warn!(
-                    "Couldn't find path for {:?}, skipping associated constants",
-                    ty
-                );
+                warn!("Couldn't find path for {ty:?}, skipping associated constants");
                 return;
             }
         };
@@ -833,11 +830,11 @@ impl Parse {
         for item in items.into_iter() {
             if let syn::Visibility::Public(_) = item.vis {
             } else {
-                warn!("Skip {}::{} - (not `pub`).", crate_name, &item.ident);
+                warn!("Skip {}::{} - (not `pub`).", crate_name, item.ident);
                 return;
             }
 
-            let path = Path::new(item.ident.unraw().to_string());
+            let path = Path::new(item.ident.unraw().to_string() + impl_path.name());
             match Constant::load(
                 path,
                 mod_cfg,
@@ -847,7 +844,7 @@ impl Parse {
                 Some(impl_path.clone()),
             ) {
                 Ok(constant) => {
-                    info!("Take {}::{}::{}.", crate_name, impl_path, &item.ident);
+                    info!("Take {}::{}::{}.", crate_name, impl_path, item.ident);
                     let mut any = false;
                     self.structs.for_items_mut(&impl_path, |item| {
                         any = true;
@@ -858,12 +855,12 @@ impl Parse {
                     if !any && !self.constants.try_insert(constant) {
                         error!(
                             "Conflicting name for constant {}::{}::{}.",
-                            crate_name, impl_path, &item.ident,
+                            crate_name, impl_path, item.ident,
                         );
                     }
                 }
                 Err(msg) => {
-                    warn!("Skip {}::{} - ({})", crate_name, &item.ident, msg);
+                    warn!("Skip {}::{} - ({})", crate_name, item.ident, msg);
                 }
             }
         }
@@ -884,29 +881,29 @@ impl Parse {
         {
             info!(
                 "Skip {}::{} - (const's outside of the binding crate are not used).",
-                crate_name, &item.ident
+                crate_name, item.ident
             );
             return;
         }
 
         if let syn::Visibility::Public(_) = item.vis {
         } else {
-            warn!("Skip {}::{} - (not `pub`).", crate_name, &item.ident);
+            warn!("Skip {}::{} - (not `pub`).", crate_name, item.ident);
             return;
         }
 
         let path = Path::new(item.ident.unraw().to_string());
         match Constant::load(path, mod_cfg, &item.ty, &item.expr, &item.attrs, None) {
             Ok(constant) => {
-                info!("Take {}::{}.", crate_name, &item.ident);
+                info!("Take {}::{}.", crate_name, item.ident);
 
                 let full_name = constant.path.clone();
                 if !self.constants.try_insert(constant) {
-                    error!("Conflicting name for constant {}", full_name);
+                    error!("Conflicting name for constant {full_name}");
                 }
             }
             Err(msg) => {
-                warn!("Skip {}::{} - ({})", crate_name, &item.ident, msg);
+                warn!("Skip {}::{} - ({})", crate_name, item.ident, msg);
             }
         }
     }
@@ -926,7 +923,7 @@ impl Parse {
         {
             info!(
                 "Skip {}::{} - (static's outside of the binding crate are not used).",
-                crate_name, &item.ident
+                crate_name, item.ident
             );
             return;
         }
@@ -935,15 +932,15 @@ impl Parse {
             let path = Path::new(exported_name);
             match Static::load(path, item, mod_cfg) {
                 Ok(constant) => {
-                    info!("Take {}::{}.", crate_name, &item.ident);
+                    info!("Take {}::{}.", crate_name, item.ident);
                     self.globals.try_insert(constant);
                 }
                 Err(msg) => {
-                    warn!("Skip {}::{} - ({})", crate_name, &item.ident, msg);
+                    warn!("Skip {}::{} - ({})", crate_name, item.ident, msg);
                 }
             }
         } else {
-            warn!("Skip {}::{} - (not `no_mangle`).", crate_name, &item.ident);
+            warn!("Skip {}::{} - (not `no_mangle`).", crate_name, item.ident);
         }
     }
 
@@ -957,11 +954,11 @@ impl Parse {
     ) {
         match Struct::load(&config.layout, item, mod_cfg) {
             Ok(st) => {
-                info!("Take {}::{}.", crate_name, &item.ident);
+                info!("Take {}::{}.", crate_name, item.ident);
                 self.structs.try_insert(st);
             }
             Err(msg) => {
-                info!("Take {}::{} - opaque ({}).", crate_name, &item.ident, msg);
+                info!("Take {}::{} - opaque ({}).", crate_name, item.ident, msg);
                 let path = Path::new(item.ident.unraw().to_string());
                 self.opaque_items.try_insert(
                     OpaqueItem::load(path, &item.generics, &item.attrs, mod_cfg).unwrap(),
@@ -980,12 +977,12 @@ impl Parse {
     ) {
         match Union::load(&config.layout, item, mod_cfg) {
             Ok(st) => {
-                info!("Take {}::{}.", crate_name, &item.ident);
+                info!("Take {}::{}.", crate_name, item.ident);
 
                 self.unions.try_insert(st);
             }
             Err(msg) => {
-                info!("Take {}::{} - opaque ({}).", crate_name, &item.ident, msg);
+                info!("Take {}::{} - opaque ({}).", crate_name, item.ident, msg);
                 let path = Path::new(item.ident.unraw().to_string());
                 self.opaque_items.try_insert(
                     OpaqueItem::load(path, &item.generics, &item.attrs, mod_cfg).unwrap(),
@@ -1004,11 +1001,11 @@ impl Parse {
     ) {
         match Enum::load(item, mod_cfg, config) {
             Ok(en) => {
-                info!("Take {}::{}.", crate_name, &item.ident);
+                info!("Take {}::{}.", crate_name, item.ident);
                 self.enums.try_insert(en);
             }
             Err(msg) => {
-                info!("Take {}::{} - opaque ({}).", crate_name, &item.ident, msg);
+                info!("Take {}::{} - opaque ({}).", crate_name, item.ident, msg);
                 let path = Path::new(item.ident.unraw().to_string());
                 self.opaque_items.try_insert(
                     OpaqueItem::load(path, &item.generics, &item.attrs, mod_cfg).unwrap(),
@@ -1021,12 +1018,12 @@ impl Parse {
     fn load_syn_ty(&mut self, crate_name: &str, mod_cfg: Option<&Cfg>, item: &syn::ItemType) {
         match Typedef::load(item, mod_cfg) {
             Ok(st) => {
-                info!("Take {}::{}.", crate_name, &item.ident);
+                info!("Take {}::{}.", crate_name, item.ident);
 
                 self.typedefs.try_insert(st);
             }
             Err(msg) => {
-                info!("Take {}::{} - opaque ({}).", crate_name, &item.ident, msg);
+                info!("Take {}::{} - opaque ({}).", crate_name, item.ident, msg);
                 let path = Path::new(item.ident.unraw().to_string());
                 self.opaque_items.try_insert(
                     OpaqueItem::load(path, &item.generics, &item.attrs, mod_cfg).unwrap(),
@@ -1054,12 +1051,21 @@ impl Parse {
         let bitflags = match bitflags::parse(item.mac.tokens.clone()) {
             Ok(bf) => bf,
             Err(e) => {
-                warn!("Failed to parse bitflags invocation: {:?}", e);
+                warn!("Failed to parse bitflags invocation: {e:?}");
                 return;
             }
         };
 
-        let (struct_, impl_) = bitflags.expand();
+        let out_of_line_transparent = {
+            let mut transparent = false;
+            let bitflag_ident = bitflags.self_ty_name().unraw().to_string();
+            self.structs.for_items(&Path::new(&bitflag_ident), |s| {
+                transparent |= s.is_transparent;
+            });
+            transparent
+        };
+
+        let (struct_, impl_) = bitflags.expand(out_of_line_transparent);
         if let Some(struct_) = struct_ {
             self.load_syn_struct(config, crate_name, mod_cfg, &struct_);
         }

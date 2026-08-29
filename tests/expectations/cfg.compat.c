@@ -4,6 +4,7 @@ DEF PLATFORM_WIN = 0
 DEF X11 = 0
 DEF M_32 = 0
 #endif
+#define PLATFORM_UNIX 1
 
 
 #include <stdarg.h>
@@ -11,48 +12,77 @@ DEF M_32 = 0
 #include <stdint.h>
 #include <stdlib.h>
 
-#if (defined(PLATFORM_WIN) || defined(M_32))
-enum BarType
-#ifdef __cplusplus
+#if (defined(PLATFORM_UNIX) && defined(X11))
+enum FooType
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint32_t
-#endif // __cplusplus
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
   A,
   B,
   C,
 };
 #ifndef __cplusplus
-typedef uint32_t BarType;
+#if __STDC_VERSION__ >= 202311L
+typedef enum FooType FooType;
+#else
+typedef uint32_t FooType;
+#endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 #endif
 
-#if (defined(PLATFORM_UNIX) && defined(X11))
-enum FooType
-#ifdef __cplusplus
+#if (defined(PLATFORM_WIN) || defined(M_32))
+enum BarType
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint32_t
-#endif // __cplusplus
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
   A,
   B,
   C,
 };
 #ifndef __cplusplus
-typedef uint32_t FooType;
+#if __STDC_VERSION__ >= 202311L
+typedef enum BarType BarType;
+#else
+typedef uint32_t BarType;
+#endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
+#endif
+
+typedef struct {
+  uint8_t _0;
+} Flags;
+/**
+ * none
+ */
+#define Flags_NONE (Flags){ ._0 = (uint8_t)0 }
+#if defined(PLATFORM_WIN)
+#define Flags_A (Flags){ ._0 = (uint8_t)(1 << 0) }
+#endif
+#if defined(PLATFORM_UNIX)
+#define Flags_A (Flags){ ._0 = (uint8_t)(1 << 1) }
+#endif
+#if defined(PLATFORM_WIN)
+#define Flags_B (Flags){ ._0 = (uint8_t)((Flags_A)._0 | (1 << 3)) }
+#endif
+#if defined(PLATFORM_UNIX)
+#define Flags_B (Flags){ ._0 = (uint8_t)((Flags_A)._0 | (1 << 4)) }
 #endif
 
 #if (defined(PLATFORM_UNIX) && defined(X11))
 typedef struct {
   FooType ty;
+  Flags flags;
   int32_t x;
   float y;
 } FooHandle;
 #endif
 
 enum C_Tag
-#ifdef __cplusplus
+#if defined(__cplusplus) || __STDC_VERSION__ >= 202311L
   : uint8_t
-#endif // __cplusplus
+#endif // defined(__cplusplus) || __STDC_VERSION__ >= 202311L
  {
   C1,
   C2,
@@ -64,7 +94,11 @@ enum C_Tag
 #endif
 };
 #ifndef __cplusplus
+#if __STDC_VERSION__ >= 202311L
+typedef enum C_Tag C_Tag;
+#else
 typedef uint8_t C_Tag;
+#endif // __STDC_VERSION__ >= 202311L
 #endif // __cplusplus
 
 #if defined(PLATFORM_UNIX)
@@ -95,6 +129,8 @@ typedef struct {
 #endif
   ;
 } ConditionalField;
+#define ConditionalField_ZERO (ConditionalField){ .field = 0 }
+#define ConditionalField_ONE (ConditionalField){ .field = 1 }
 
 typedef struct {
   int32_t x;

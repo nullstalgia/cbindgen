@@ -42,7 +42,7 @@ impl FromStr for Language {
             "C" => Ok(Language::C),
             "cython" => Ok(Language::Cython),
             "Cython" => Ok(Language::Cython),
-            _ => Err(format!("Unrecognized Language: '{}'.", s)),
+            _ => Err(format!("Unrecognized Language: '{s}'.")),
         }
     }
 }
@@ -103,7 +103,7 @@ impl FromStr for LineEndingStyle {
             "lf" => Ok(Self::LF),
             "crlf" => Ok(Self::CRLF),
             "cr" => Ok(Self::CR),
-            _ => Err(format!("Unrecognized line ending style: '{}'.", s)),
+            _ => Err(format!("Unrecognized line ending style: '{s}'.")),
         }
     }
 }
@@ -126,7 +126,7 @@ impl FromStr for Braces {
             "same_line" => Ok(Braces::SameLine),
             "NextLine" => Ok(Braces::NextLine),
             "next_line" => Ok(Braces::NextLine),
-            _ => Err(format!("Unrecognized Braces: '{}'.", s)),
+            _ => Err(format!("Unrecognized Braces: '{s}'.")),
         }
     }
 }
@@ -152,7 +152,7 @@ impl FromStr for Layout {
             "vertical" => Ok(Layout::Vertical),
             "Auto" => Ok(Layout::Auto),
             "auto" => Ok(Layout::Auto),
-            _ => Err(format!("Unrecognized Layout: '{}'.", s)),
+            _ => Err(format!("Unrecognized Layout: '{s}'.")),
         }
     }
 }
@@ -180,7 +180,7 @@ impl FromStr for DocumentationStyle {
             "c++" => Ok(DocumentationStyle::Cxx),
             "doxy" => Ok(DocumentationStyle::Doxy),
             "auto" => Ok(DocumentationStyle::Auto),
-            _ => Err(format!("Unrecognized documentation style: '{}'.", s)),
+            _ => Err(format!("Unrecognized documentation style: '{s}'.")),
         }
     }
 }
@@ -201,7 +201,7 @@ impl FromStr for DocumentationLength {
         match s.to_lowercase().as_ref() {
             "short" => Ok(DocumentationLength::Short),
             "full" => Ok(DocumentationLength::Full),
-            _ => Err(format!("Unrecognized documentation style: '{}'.", s)),
+            _ => Err(format!("Unrecognized documentation style: '{s}'.")),
         }
     }
 }
@@ -253,7 +253,7 @@ impl FromStr for Style {
             "tag" => Ok(Style::Tag),
             "Type" => Ok(Style::Type),
             "type" => Ok(Style::Type),
-            _ => Err(format!("Unrecognized Style: '{}'.", s)),
+            _ => Err(format!("Unrecognized Style: '{s}'.")),
         }
     }
 }
@@ -287,7 +287,7 @@ impl FromStr for ItemType {
             "typedefs" => Typedefs,
             "opaque" => OpaqueItems,
             "functions" => Functions,
-            _ => return Err(format!("Unrecognized Style: '{}'.", s)),
+            _ => return Err(format!("Unrecognized Style: '{s}'.")),
         })
     }
 }
@@ -309,7 +309,7 @@ impl FromStr for SortKey {
         Ok(match &*s.to_lowercase() {
             "name" => Name,
             "none" => None,
-            _ => return Err(format!("Unrecognized sort option: '{}'.", s)),
+            _ => return Err(format!("Unrecognized sort option: '{s}'.")),
         })
     }
 }
@@ -451,17 +451,15 @@ impl Default for FunctionConfig {
 
 impl FunctionConfig {
     pub(crate) fn prefix(&self, annotations: &AnnotationSet) -> Option<String> {
-        if let Some(x) = annotations.atom("prefix") {
-            return x;
-        }
-        self.prefix.clone()
+        annotations
+            .atom("prefix")
+            .unwrap_or_else(|| self.prefix.clone())
     }
 
     pub(crate) fn postfix(&self, annotations: &AnnotationSet) -> Option<String> {
-        if let Some(x) = annotations.atom("postfix") {
-            return x;
-        }
-        self.postfix.clone()
+        annotations
+            .atom("postfix")
+            .unwrap_or_else(|| self.postfix.clone())
     }
 }
 
@@ -493,6 +491,9 @@ pub struct StructConfig {
     /// Whether associated constants should be in the body. Only applicable to
     /// non-transparent structs, and in C++-only.
     pub associated_constants_in_body: bool,
+    /// The rename rule to apply to the struct name used for prefixing associated
+    /// constants
+    pub rename_associated_constant: RenameRule,
     /// The way to annotate this struct as #[must_use].
     pub must_use: Option<String>,
     /// The way to annotation this function as #[deprecated] without notes
@@ -503,52 +504,32 @@ pub struct StructConfig {
 
 impl StructConfig {
     pub(crate) fn derive_constructor(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-constructor") {
-            return x;
-        }
-        self.derive_constructor
+        annotations
+            .bool("derive-constructor")
+            .unwrap_or(self.derive_constructor)
     }
     pub(crate) fn derive_eq(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-eq") {
-            return x;
-        }
-        self.derive_eq
+        annotations.bool("derive-eq").unwrap_or(self.derive_eq)
     }
     pub(crate) fn derive_neq(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-neq") {
-            return x;
-        }
-        self.derive_neq
+        annotations.bool("derive-neq").unwrap_or(self.derive_neq)
     }
     pub(crate) fn derive_lt(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-lt") {
-            return x;
-        }
-        self.derive_lt
+        annotations.bool("derive-lt").unwrap_or(self.derive_lt)
     }
     pub(crate) fn derive_lte(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-lte") {
-            return x;
-        }
-        self.derive_lte
+        annotations.bool("derive-lte").unwrap_or(self.derive_lte)
     }
     pub(crate) fn derive_gt(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-gt") {
-            return x;
-        }
-        self.derive_gt
+        annotations.bool("derive-gt").unwrap_or(self.derive_gt)
     }
     pub(crate) fn derive_gte(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-gte") {
-            return x;
-        }
-        self.derive_gte
+        annotations.bool("derive-gte").unwrap_or(self.derive_gte)
     }
     pub(crate) fn derive_ostream(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-ostream") {
-            return x;
-        }
-        self.derive_ostream
+        annotations
+            .bool("derive-ostream")
+            .unwrap_or(self.derive_ostream)
     }
 }
 
@@ -637,67 +618,55 @@ impl Default for EnumConfig {
 
 impl EnumConfig {
     pub(crate) fn add_sentinel(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("add-sentinel") {
-            return x;
-        }
-        self.add_sentinel
+        annotations
+            .bool("add-sentinel")
+            .unwrap_or(self.add_sentinel)
     }
     pub(crate) fn derive_helper_methods(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-helper-methods") {
-            return x;
-        }
-        self.derive_helper_methods
+        annotations
+            .bool("derive-helper-methods")
+            .unwrap_or(self.derive_helper_methods)
     }
     pub(crate) fn derive_const_casts(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-const-casts") {
-            return x;
-        }
-        self.derive_const_casts
+        annotations
+            .bool("derive-const-casts")
+            .unwrap_or(self.derive_const_casts)
     }
     pub(crate) fn derive_mut_casts(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-mut-casts") {
-            return x;
-        }
-        self.derive_mut_casts
+        annotations
+            .bool("derive-mut-casts")
+            .unwrap_or(self.derive_mut_casts)
     }
     pub(crate) fn derive_tagged_enum_destructor(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-tagged-enum-destructor") {
-            return x;
-        }
-        self.derive_tagged_enum_destructor
+        annotations
+            .bool("derive-tagged-enum-destructor")
+            .unwrap_or(self.derive_tagged_enum_destructor)
     }
     pub(crate) fn derive_tagged_enum_copy_constructor(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-tagged-enum-copy-constructor") {
-            return x;
-        }
-        self.derive_tagged_enum_copy_constructor
+        annotations
+            .bool("derive-tagged-enum-copy-constructor")
+            .unwrap_or(self.derive_tagged_enum_copy_constructor)
     }
     pub(crate) fn derive_tagged_enum_copy_assignment(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-tagged-enum-copy-assignment") {
-            return x;
-        }
-        self.derive_tagged_enum_copy_assignment
+        annotations
+            .bool("derive-tagged-enum-copy-assignment")
+            .unwrap_or(self.derive_tagged_enum_copy_assignment)
     }
     pub(crate) fn derive_ostream(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("derive-ostream") {
-            return x;
-        }
-        self.derive_ostream
+        annotations
+            .bool("derive-ostream")
+            .unwrap_or(self.derive_ostream)
     }
     pub(crate) fn enum_class(&self, annotations: &AnnotationSet) -> bool {
-        if let Some(x) = annotations.bool("enum-class") {
-            return x;
-        }
-        self.enum_class
+        annotations.bool("enum-class").unwrap_or(self.enum_class)
     }
     pub(crate) fn private_default_tagged_enum_constructor(
         &self,
         annotations: &AnnotationSet,
     ) -> bool {
-        if let Some(x) = annotations.bool("private-default-tagged-enum-constructor") {
-            return x;
-        }
-        self.private_default_tagged_enum_constructor
+        annotations
+            .bool("private-default-tagged-enum-constructor")
+            .unwrap_or(self.private_default_tagged_enum_constructor)
     }
 }
 
@@ -749,7 +718,7 @@ impl FromStr for Profile {
         match s {
             "debug" | "Debug" => Ok(Profile::Debug),
             "release" | "Release" => Ok(Profile::Release),
-            _ => Err(format!("Unrecognized Profile: '{}'.", s)),
+            _ => Err(format!("Unrecognized Profile: '{s}'.")),
         }
     }
 }
@@ -879,6 +848,8 @@ impl ParseConfig {
 pub struct PtrConfig {
     /// Optional attribute to apply to pointers that are required to not be null
     pub non_null_attribute: Option<String>,
+    /// Optional attribute to apply to pointers that may be null
+    pub nullable_attribute: Option<String>,
 }
 
 /// Settings specific to Cython bindings.
@@ -1113,7 +1084,7 @@ impl Config {
         })?;
 
         let mut config = toml::from_str::<Config>(&config_text)
-            .map_err(|e| format!("Couldn't parse config file: {}.", e))?;
+            .map_err(|e| format!("Couldn't parse config file: {e}."))?;
         config.config_path = Some(StdPathBuf::from(file_name.as_ref()));
         Ok(config)
     }
