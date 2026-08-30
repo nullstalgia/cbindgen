@@ -47,7 +47,7 @@ impl<'i, 't: 'i, T: Clone + 't, I: Iterator + 'i> IterCow<'i, 't, T> for I {
 pub trait CowIsOwned {
     fn cow_is_owned(&self) -> bool;
 }
-impl<T: Clone> CowIsOwned for Cow<'_, T> {
+impl<T: ?Sized + ToOwned> CowIsOwned for Cow<'_, T> {
     fn cow_is_owned(&self) -> bool {
         matches!(self, Cow::Owned(_))
     }
