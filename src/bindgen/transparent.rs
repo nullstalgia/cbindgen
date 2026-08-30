@@ -63,10 +63,10 @@ pub trait ResolveTransparentTypes: Sized {
     /// returned as a `Cow::Borrowed` result.
     fn resolve_fields<'a>(
         library: &Library,
-        fields: &'a Vec<Field>,
+        fields: &'a [Field],
         params: &GenericParams,
         mut skip_first: bool,
-    ) -> Cow<'a, Vec<Field>> {
+    ) -> Cow<'a, [Field]> {
         let new_fields: Vec<_> = fields
             .iter()
             .cow_map(|f| {
