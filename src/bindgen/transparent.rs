@@ -65,14 +65,13 @@ pub trait ResolveTransparentTypes: Sized {
         library: &Library,
         fields: &'a [Field],
         params: &GenericParams,
-        mut skip_first: bool,
+        mut skip_first: Option<bool>,
     ) -> Cow<'a, [Field]> {
         let new_fields: Vec<_> = fields
             .iter()
             .cow_map(|f| {
                 // Ignore the inline Tag field, if any (it's always first, when present at all)
-                if skip_first {
-                    skip_first = false;
+                if skip_first.take().unwrap_or_default() {
                     None
                 } else {
                     Some(Field {

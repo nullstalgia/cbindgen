@@ -406,7 +406,7 @@ impl ResolveTransparentTypes for Struct {
     fn resolve_transparent_types(&self, library: &Library) -> Option<Struct> {
         // Resolve any defaults in the generic params
         let params = Self::resolve_generic_params(library, &self.generic_params);
-        let fields = Self::resolve_fields(library, &self.fields, &params, false);
+        let fields = Self::resolve_fields(library, &self.fields, &params, None);
         (params.cow_is_owned() || fields.cow_is_owned()).then(|| Struct {
             generic_params: params.into_owned(),
             fields: fields.into_owned(),

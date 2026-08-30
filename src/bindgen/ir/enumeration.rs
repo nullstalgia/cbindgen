@@ -659,8 +659,12 @@ impl ResolveTransparentTypes for Enum {
                     inline,
                     inline_casts,
                 } => {
-                    let fields =
-                        Self::resolve_fields(library, &body.fields, &params, skip_inline_tag_field);
+                    let fields = Self::resolve_fields(
+                        library,
+                        &body.fields,
+                        &params,
+                        Some(skip_inline_tag_field),
+                    );
                     let Cow::Owned(fields) = fields else {
                         return None;
                     };
